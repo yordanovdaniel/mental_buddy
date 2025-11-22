@@ -22,13 +22,13 @@ import {
   Robot,
   Sun,
   PaperPlaneTilt,
-  Stop
+  Stop,
+  Trash
 } from "@phosphor-icons/react";
 
 // List of tools that require human confirmation
 // NOTE: this should match the tools that don't have execute functions in tools.ts
 const toolsRequiringConfirmation: (keyof typeof tools)[] = [
-  "getWeatherInformation"
 ];
 
 export default function Chat() {
@@ -191,6 +191,16 @@ export default function Chat() {
             onClick={toggleTheme}
           >
             {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
+          </Button>
+
+           <Button
+            variant="ghost"
+            size="md"
+            shape="square"
+            className="rounded-full h-9 w-9"
+            onClick={clearHistory}
+          >
+            <Trash size={20} />
           </Button>
         </div>
 
