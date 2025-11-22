@@ -137,7 +137,7 @@ export default function Chat() {
 
   return (
     <div className="h-[100vh] w-full p-4 flex justify-center items-center bg-fixed overflow-hidden">
-      <div className="top-4 bottom-4 right-4 pointer-events-none">
+      <div className="top-4 bottom-4 right-4 pointer-events-none greeting-wrapper">
         <div className="flex items-center justify-center">
           <img
             style={{ borderRadius: "4rem" }}
@@ -413,7 +413,7 @@ export default function Chat() {
           </div>
         </form>
       </div>
-      <div className="top-4 bottom-4 right-4 pointer-events-none">
+      <div className="top-4 bottom-4 right-4 pointer-events-none greeting-wrapper">
         <div className="flex items-center justify-center">
           <img
             style={{ borderRadius: "4rem" }}

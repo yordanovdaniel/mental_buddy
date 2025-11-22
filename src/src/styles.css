@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+@media (max-width: 639px) {
+  .greeting-wrapper { display: none; }
+}
+
 /* Markdown Table Styling (Tailwind @apply) */
 .markdown-body table {
   @apply w-full border-collapse my-4 text-[0.95em];
