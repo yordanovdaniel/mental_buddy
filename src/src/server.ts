@@ -1,0 +1,83 @@
+import { routeAgentRequest } from "agents";
+
+import { AIChatAgent } from "agents/ai-chat-agent";
+import {
+  streamText,
+  type StreamTextOnFinishCallback,
+  createUIMessageStream,
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  type ToolSet
+} from "ai";
+import { createWorkersAI } from 'workers-ai-provider';
+import { processToolCalls, cleanupMessages } from "./utils";
+import { tools, executions } from "./tools";
+import { env } from "cloudflare:workers";
+
+const workersai = createWorkersAI({ binding: env.AI });
+const model = workersai("@cf/meta/llama-3.2-3b-instruct");
+
+/**
+ * Chat Agent implementation that handles real-time AI chat interactions
+ */
+export class Chat extends AIChatAgent<Env> {
+  /**
+   * Handles incoming chat messages and manages the response stream
+   */
+  async onChatMessage(
+    onFinish: StreamTextOnFinishCallback<ToolSet>,
+    _options?: { abortSignal?: AbortSignal }
+  ) {
+
+    // Collect all tools, including MCP tools
+    const allTools = {
+      ...tools,
+      ...this.mcp.getAITools()
+    };
+
+    const stream = createUIMessageStream({
+      execute: async ({ writer }) => {
+        // Clean up incomplete tool calls to prevent API errors
+        const cleanedMessages = cleanupMessages(this.messages);
+
+        // Process any pending tool calls from previous messages
+        // This handles human-in-the-loop confirmations for tools
+        const processedMessages = await processToolCalls({
+          messages: cleanedMessages,
+          dataStream: writer,
+          tools: allTools,
+          executions
+        });
+
+        const result = streamText({
+          system: `You are a concise and efficient assistant capable of performing various tasks. When the user asks for the stock price of a company, first convert the company name into its stock symbol, then call the appropriate tool to retrieve the stock price.`,
+          messages: convertToModelMessages(processedMessages),
+          model,
+          tools: allTools,
+          // Type boundary: streamText expects specific tool types, but base class uses ToolSet
+          // This is safe because our tools satisfy ToolSet interface (verified by 'satisfies' in tools.ts)
+          onFinish: onFinish as unknown as StreamTextOnFinishCallback<
+            typeof allTools
+          >
+        });
+
+        writer.merge(result.toUIMessageStream());
+      }
+    });
+
+    return createUIMessageStreamResponse({ stream });
+  }
+}
+
+/**
+ * Worker entry point that routes incoming requests to the appropriate handler
+ */
+export default {
+  async fetch(request: Request, env: Env, _ctx: ExecutionContext) {
+    return (
+      // Route the request to our agent or return 404 if not found
+      (await routeAgentRequest(request, env)) ||
+      new Response("Not found", { status: 404 })
+    );
+  }
+} satisfies ExportedHandler<Env>;
